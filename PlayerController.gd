@@ -1,31 +1,64 @@
-# /Users/andrewwotton/melee-rpg/PlayerController.gd
 extends CharacterBody2D
 
-## Engine configuration for top-down 4-way kinematic movement.
-## Handles normalized diagonal velocity to prevent speed compounding.
+# Movement configuration
+@export var speed: float = 200.0
 
-@export_category("Movement Attributes")
-@export var movement_speed: float = 300.0
-@export var friction: float = 0.25
+# Node references - Adjust paths if your names differ exactly
+@onready var player_hitbox: Area2D = $PlayerHitbox
+@onready var hitbox_collision: CollisionShape2D = $PlayerHitbox/CollisionShape2D
 
-func _physics_process(_delta: float) -> void:
-	_handle_movement_input()
+# Simple state tracking
+var is_attacking: bool = false
+var attack_duration: float = 0.2
+var attack_timer: float = 0.0
 
-func _handle_movement_input() -> void:
-	var input_direction: Vector2 = Vector2.ZERO
-
-	# Read concrete input values from the configured Input Map
-	input_direction.x = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
-	input_direction.y = Input.get_action_strength("move_down") - Input.get_action_strength("move_up")
-	
-	# Prevent diagonal movement from being faster than straight movement
-	if input_direction.length() > 0.0:
-		input_direction = input_direction.normalized()
-		# Direct velocity calculation via vector multiplication
-		velocity = input_direction * movement_speed
+func _ready() -> void:
+	# Ensure the hitbox is strictly disabled when the game starts
+	if hitbox_collision:
+		hitbox_collision.disabled = true
 	else:
-		# Apply smooth deceleration when no keys are pressed
-		velocity = velocity.move_toward(Vector2.ZERO, movement_speed * friction)
+		push_error("PlayerController: CollisionShape2D not found under PlayerHitbox!")
+
+func _physics_process(delta: float) -> void:
+	if is_attacking:
+		_handle_attack_state(delta)
+	else:
+		_handle_movement_state()
+
+## Handles player movement when not locked in an attack animation/state
+func _handle_movement_state() -> void:
+	# Updated to match your custom Input Map actions
+	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	
+	if direction != Vector2.ZERO:
+		# Explicitly normalize to guarantee consistent diagonal speed
+		velocity = direction.normalized() * speed
+	else:
+		velocity = velocity.move_toward(Vector2.ZERO, speed)
 		
-	# Execute frame-rate independent physics translation
 	move_and_slide()
+	
+	# Check for attack trigger
+	if Input.is_action_just_pressed("attack"):
+		_start_attack()
+
+## Initiates the attack state and opens the hitbox window
+func _start_attack() -> void:
+	is_attacking = true
+	attack_timer = attack_duration
+	velocity = Vector2.ZERO # Halt movement during the attack swing
+	
+	if hitbox_collision:
+		hitbox_collision.disabled = false
+
+## Tracks the attack window duration and closes it upon expiration
+func _handle_attack_state(delta: float) -> void:
+	attack_timer -= delta
+	if attack_timer <= 0.0:
+		_end_attack()
+
+## Resets the player back to the movement state and disables the hitbox
+func _end_attack() -> void:
+	is_attacking = false
+	if hitbox_collision:
+		hitbox_collision.disabled = true
