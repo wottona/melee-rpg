@@ -24,11 +24,21 @@ texture = ExtResource("3_1lwx6")
 shape = SubResource("CircleShape2D_cnaw2")
 
 [node name="PlayerHitbox" type="Area2D" parent="Player" unique_id=1273072699]
+z_index = 2
+z_as_relative = false
 collision_layer = 0
 script = ExtResource("5_lf0gk")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Player/PlayerHitbox" unique_id=1372115704]
+z_as_relative = false
 shape = SubResource("CircleShape2D_lf0gk")
+
+[node name="SwingVisual" type="Line2D" parent="Player/PlayerHitbox" unique_id=928386919]
+visible = false
+z_index = 1
+z_as_relative = false
+points = PackedVector2Array(-16, 0, 16, 0)
+width = 12.0
 
 [node name="Enemy" parent="." unique_id=1923604664 instance=ExtResource("6_cnaw2")]
 position = Vector2(486, 415)
